@@ -1,3 +1,7 @@
+https://docs.aws.amazon.com/pt_br/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html
+
+
+
 Estender um sistema de arquivos Linux após um redimensionamento de volume
 
 Depois de aumentar o tamanho de um volume do EBS, é necessário usar comandos específicos do sistema de arquivos para estender o sistema de arquivos ao tamanho maior. 
