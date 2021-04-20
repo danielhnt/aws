@@ -1,0 +1,171 @@
+Estender um sistema de arquivos Linux após um redimensionamento de volume
+
+Depois de aumentar o tamanho de um volume do EBS, é necessário usar comandos específicos do sistema de arquivos para estender o sistema de arquivos ao tamanho maior. 
+Você pode redimensionar o sistema de arquivos à medida que o volume entrar no estado optimizing.
+
+Importante
+Antes de estender um sistema de arquivos que contém dados valiosos, a prática recomendada é criar um snapshot do volume, caso você precise reverter suas alterações. 
+Para obter mais informações, consulte Criar snapshots de Amazon EBS. Se sua AMI do Linux usa o esquema de particionamento do MBR, você está limitado a um volume de inicialização
+de até 2 TiB. Para obter mais informações, consulte Requisitos para volumes do Linux e Restrições de tamanho e configuração de um volume do EBS.
+
+O processo para estender um sistema de arquivos no Linux é o seguinte:
+
+O volume do EBS pode ter uma partição com o sistema de arquivos e os dados. Aumentar o tamanho de um volume não aumenta o tamanho da partição. Antes de estender o 
+sistema de arquivos em um volume redimensionado, verifique se o volume tem uma partição que deve ser estendida para o novo tamanho do volume.
+
+Use o comando específico do sistema de arquivos para redimensionar cada sistema de arquivos de acordo com a capacidade do novo volume.
+
+Para obter informações sobre como estender um sistema de arquivos do Windows, consulte Estender um sistema de arquivos do Windows após redimensionar um volume no 
+Guia do usuário do Amazon EC2 para instâncias do Windows.
+
+Os exemplos a seguir demonstram o processo de extensão de um sistema de arquivos Linux. Para sistemas de arquivos e esquemas de particionamento diferentes dos mostrados aqui, 
+consulte a documentação desses sistemas de arquivos e esquemas de particionamento para obter instruções.
+
+Exemplos
+
+Para estender o sistema de arquivos de volumes EBS de NVMe
+Exemplo: estender o sistema de arquivos de volumes do EBS
+Para estender o sistema de arquivos de volumes EBS de NVMe
+Para este exemplo, suponha que você tenha uma instância criada no Sistema Nitro, como uma instância M5. Você redimensionou o volume de inicialização de 8 GB para 16 GB e um 
+volume adicional de 8 GB para 30 GB. Use o procedimento a seguir para estender o sistema de arquivos dos volumes redimensionados.
+
+Para estender o sistema de arquivos de volumes EBS de NVMe
+
+Conectar-se à instância.
+
+Para verificar o sistema de arquivos para cada volume, use o comando df -hT.
+
+[ec2-user ~]$ df -hT
+O exemplo a seguir mostra uma saída de exemplo de uma instância que tem um volume de inicialização com um sistema de arquivos XFS e um volume adicional com um sistema de arquivos XFS. A convenção de nomenclatura /dev/nvme[0-26]n1 indica que os volumes são expostos como dispositivos de blocos NVMe.
+
+[ec2-user ~]$ df -hT
+Filesystem      Type  Size  Used Avail Use% Mounted on
+/dev/nvme0n1p1  xfs   8.0G  1.6G  6.5G  20% /
+/dev/nvme1n1    xfs   8.0G   33M  8.0G   1% /data
+...
+Para verificar se o volume tem uma partição que deve ser estendida, use o comando lsblk para exibir informações sobre os dispositivos de blocos NVMe conectados à instância.
+
+[ec2-user ~]$ lsblk
+NAME          MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+nvme1n1       259:0    0  30G  0 disk /data
+nvme0n1       259:1    0  16G  0 disk
+└─nvme0n1p1   259:2    0   8G  0 part /
+└─nvme0n1p128 259:3    0   1M  0 part
+Este exemplo de saída mostra o seguinte:
+
+O volume raiz, /dev/nvme0n1, tem uma partição, /dev/nvme0n1p1. Enquanto o tamanho do volume raiz reflete o novo tamanho, 16 GB, o tamanho da partição reflete o tamanho original, 8 GB, e deve ser estendido antes que você possa estender o sistema de arquivos.
+
+O volume /dev/nvme1n1 não tem partições. O tamanho do volume reflete o novo tamanho, 30 GB.
+
+Para volumes que têm uma partição, como o volume raiz mostrado na etapa anterior, use o comando growpart para estender a partição. Observe que há um espaço entre o nome do dispositivo e o número da partição.
+
+[ec2-user ~]$ sudo growpart /dev/nvme0n1 1
+(Opcional) Use o comando lsblk novamente para verificar se a partição reflete o tamanho do volume aumentado.
+
+[ec2-user ~]$ lsblk
+NAME          MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+nvme1n1       259:0    0  30G  0 disk /data
+nvme0n1       259:1    0  16G  0 disk
+└─nvme0n1p1   259:2    0  16G  0 part /
+└─nvme0n1p128 259:3    0   1M  0 part
+Use o comando df -h para verificar o tamanho do sistema de arquivos de cada volume. Neste exemplo de saída, ambos os sistemas de arquivos refletem o tamanho original do volume, 8 GB.
+
+[ec2-user ~]$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+/dev/nvme0n1p1   8.0G  1.6G  6.5G  20% /
+/dev/nvme1n1     8.0G   33M  8.0G   1% /data
+...
+Para estender o sistema de arquivos em cada volume, use o comando correto para seu sistema de arquivos, como segue:
+
+[Sistema de arquivos XFS] Use o comando xfs_growfs para estender o sistema de arquivos em cada volume. Neste exemplo, / e /data são os pontos de montagem de volume mostrados na saída de df -h.
+
+[ec2-user ~]$ sudo xfs_growfs -d /
+[ec2-user ~]$ sudo xfs_growfs -d /data
+Se as ferramentas do XFS ainda não estiverem instaladas, você poderá instalá-las da seguinte forma.
+
+[ec2-user ~]$ sudo yum install xfsprogs
+[Sistema de arquivos ext4] Use o comando resize2fs para estender o sistema de arquivos em cada volume.
+
+[ec2-user ~]$ sudo resize2fs /dev/nvme0n1p1
+[ec2-user ~]$ sudo resize2fs /dev/nvme1n1
+[Outro sistema de arquivos] Para estender o sistema de arquivos em cada volume, consulte a documentação do sistema de arquivos para obter instruções.
+
+(Opcional) Use o comando df -h novamente para verificar se cada sistema de arquivos reflete o tamanho do volume aumentado.
+
+[ec2-user ~]$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+/dev/nvme0n1p1    16G  1.6G   15G  10% /
+/dev/nvme1n1      30G   33M   30G   1% /data
+...
+Exemplo: estender o sistema de arquivos de volumes do EBS
+Para este exemplo, suponha que você tenha redimensionado o volume de inicialização de uma instância, como uma instância T2, de 8 GB para 16 GB e um volume adicional de 8 GB para 30 GB. Use o procedimento a seguir para estender o sistema de arquivos dos volumes redimensionados.
+
+Como estender o sistema de arquivos de volumes do EBS
+
+Conectar-se à instância.
+
+Para verificar o sistema de arquivos em uso para cada volume, use o comando df -hT.
+
+[ec2-user ~]$ df -hT
+O exemplo de saída a seguir mostra uma instância que tem um volume de inicialização com um sistema de arquivos ext4 e um volume adicional com um sistema de arquivos XFS.
+
+[ec2-user ~]$ df -hT
+Filesystem      Type  Size  Used Avail Use% Mounted on
+/dev/xvda1      ext4  8.0G  1.9G  6.2G  24% /
+/dev/xvdf1      xfs   8.0G   45M  8.0G   1% /data
+...
+Para verificar se o volume tem uma partição que deve ser estendida, use o comando lsblk para exibir informações sobre os dispositivos de blocos anexados à instância.
+
+[ec2-user ~]$ lsblk
+NAME    MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+xvda    202:0    0  16G  0 disk
+└─xvda1 202:1    0   8G  0 part /
+xvdf    202:80   0  30G  0 disk
+└─xvdf1 202:81   0   8G  0 part /data
+Este exemplo de saída mostra o seguinte:
+
+O volume raiz, /dev/xvda, tem uma partição, /dev/xvda1. Embora o tamanho do volume seja de 16 GB, o tamanho da partição ainda é de 8 GB e deve ser estendido.
+
+O volume /dev/xvdf tem uma partição, /dev/xvdf1. Embora o tamanho do volume seja de 30 GB, o tamanho da partição ainda é de 8 GB e deve ser estendido.
+
+Para volumes que têm uma partição, como os volumes mostrados na etapa anterior, use o comando growpart para estender a partição. Observe que há um espaço entre o nome do dispositivo e o número da partição.
+
+[ec2-user ~]$ sudo growpart /dev/xvda 1
+[ec2-user ~]$ sudo growpart /dev/xvdf 1
+(Opcional) Use o comando lsblk novamente para verificar se as partições refletem o tamanho do volume aumentado.
+
+[ec2-user ~]$ lsblk
+NAME    MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+xvda    202:0    0  16G  0 disk
+└─xvda1 202:1    0  16G  0 part /
+xvdf    202:80   0  30G  0 disk
+└─xvdf1 202:81   0  30G  0 part /data
+Use o comando df -h para verificar o tamanho do sistema de arquivos de cada volume. Neste exemplo de saída, ambos os sistemas de arquivos refletem o tamanho original do volume, 8 GB.
+
+[ec2-user ~]$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+/dev/xvda1       8.0G  1.9G  6.2G  24% /
+/dev/xvdf1       8.0G   45M  8.0G   1% /data
+...
+Para estender o sistema de arquivos em cada volume, use o comando correto para seu sistema de arquivos, como segue:
+
+[Volumes do XFS] Use o comando xfs_growfs para estender o sistema de arquivos em cada volume. Neste exemplo, / e /data são os pontos de montagem de volume mostrados na saída de df -h.
+
+[ec2-user ~]$ sudo xfs_growfs -d /
+[ec2-user ~]$ sudo xfs_growfs -d /data
+Se as ferramentas do XFS ainda não estiverem instaladas, você poderá instalá-las da seguinte forma.
+
+[ec2-user ~]$ sudo yum install xfsprogs
+[volumes do ext4] Use o comando resize2fs para estender o sistema de arquivos em cada volume.
+
+[ec2-user ~]$ sudo resize2fs /dev/xvda1
+[ec2-user ~]$ sudo resize2fs /dev/xvdf1
+[Outro sistema de arquivos] Para estender o sistema de arquivos em cada volume, consulte a documentação do sistema de arquivos para obter instruções.
+
+(Opcional) Use o comando df -h novamente para verificar se cada sistema de arquivos reflete o tamanho do volume aumentado.
+
+[ec2-user ~]$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+/dev/xvda1        16G  1.9G  14G  12% /
+/dev/xvdf1        30G   45M  30G   1% /data
+...
