@@ -1,0 +1,82 @@
+Tutorial: restaurar uma instância de banco de dados do Amazon RDS de um snapshot do banco de dados
+PDF
+RSS
+Um cenário comum ao trabalhar com o Amazon RDS é ter uma instância de banco de dados com a qual você trabalha ocasionalmente, mas que não precisa usar em tempo integral. Por exemplo, você pode ter uma pesquisa trimestral de clientes que usa uma instância do Amazon Elastic Compute Cloud (Amazon EC2) para hospedar um site de pesquisa de clientes e uma instância de banco de dados que é usada para armazenar os resultados da pesquisa. Uma maneira de economizar dinheiro nesse cenário é obter um DB snapshot da instância de banco de dados após a conclusão da pesquisa, excluir a instância de banco de dados e depois restaurá-la quando precisar realizá-la novamente.
+
+Ao restaurar a instância de banco de dados, você fornece o nome do snapshot do banco de dados do qual restaurar e depois fornece um nome para a nova instância de banco de dados que é criada da operação de restauração.
+
+Para obter mais informações sobre a restauração de uma instância de banco de dados a partir de snapshots, consulte Restauração a partir de um snapshot de um de banco de dados.
+
+Restaurar uma instância de banco de dados de um snapshot de banco de dados
+Use o procedimento a seguir para restaurar de um snapshot no AWS Management Console.
+
+Para restaurar uma instância de banco de dados de um DB snapshot
+
+Faça login no AWS Management Console e abra o console do Amazon RDS em https://console.aws.amazon.com/rds/.
+
+No painel de navegação, selecione Snapshots.
+
+Escolha o DB snapshot do qual você deseja restaurar.
+
+Em Actions (Ações), escolha Restore snapshot (Restaurar snapshot).
+
+
+                        Opção Restore snapshot (Restaurar snapshot) no menu Actions (Ações) no console do RDS
+                    
+A página Restore snapshot (Restaurar snapshot) é exibida.
+
+
+                        Restaurar a página de snapshot
+                    
+Em DB instance settings (Configurações da instância de banco de dados), use as configurações padrão para DB engine (Mecanismo de banco de dados) e License model (Modelo de licença) (para Oracle ou Microsoft SQL Server).
+
+Em Settings (Configurações), para DB instance identifier (Identificador de instância de banco de dados), insira o nome exclusivo que você quer usar na instância de banco de dados restaurada, por exemplo, mynewdbinstance.
+
+Se você estiver restaurando de uma instância de banco de dados excluída após fazer o snapshot de banco de dados, será possível usar o nome dessa instância de banco de dados.
+
+Em Availability & durability (Disponibilidade e durabilidade), para Multi-AZ deployment (Implantação multi-AZ), escolha se quer criar uma instância em espera em outra zona de disponibilidade.
+
+Para este tutorial, use No (Não), que é a configuração padrão.
+
+Em Connectivity (Conectividade, use as configurações padrão para o seguinte:
+
+Virtual private cloud (VPC)
+
+Grupo de sub-rede
+
+Acesso público
+
+VPC security group (Grupo de segurança da VPC
+
+Escolha a DB instance class (Classe da instância de banco de dados)
+
+Para este tutorial, escolha Burstable classes (includes t classes) (Classes com capacidade de intermitência (inclui classes t)) e, depois, escolha db.t3.small.
+
+Para Encryption (Criptografia), use as configurações padrão.
+
+Se a fonte da instância de banco de dados do snapshot tiver sido criptografada, a instância de banco de dados restaurada também será criptografada. Não é possível fazer isso sem criptografia.
+
+Expanda Additional configuration (Configuração adicional) na parte inferior da página.
+
+
+                        Configuração adicional
+                    
+Faça o seguinte em Database options (Opções do banco de dados):
+
+Escolha o DB parameter group (Grupo de parâmetros de banco de dados).
+
+Para este tutorial, use o grupo de parâmetros padrão.
+
+Escolha o Option group (Grupo de opções).
+
+Para este tutorial, use o grupo de opções padrão.
+
+Importante
+Se você estiver restaurando a partir de um snapshot do banco de dados de uma instância de banco de dados que usa uma opção persistente ou permanente, você deve escolher um grupo de opções que use a mesma opção.
+
+Para Deletion protection (Proteção contra exclusão), escolha Enable deletion protection (Habilitar proteção contra exclusão).
+
+Escolha Restore DB Instance.
+
+A página Databases (Banco de dados) exibe a instância de banco de dados restaurada, com um status de Creating.
+
