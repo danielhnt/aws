@@ -1,0 +1,22 @@
+import boto3
+
+def lambda_handler(event, context):
+    # Set variables
+    cluster_name = 'your_cluster_name'
+    service_name = 'your_service_name'
+    
+    # Create ECS client
+    ecs = boto3.client('ecs')
+    
+    # Start the service
+    response = ecs.update_service(
+        cluster=cluster_name,
+        service=service_name,
+        desiredCount=1
+    )
+    
+    # Print response
+    print(response)
+    
+    # Return response
+    return response
